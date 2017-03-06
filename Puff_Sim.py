@@ -25,7 +25,7 @@ def Sensor(Leaksize=None, LeakHeight=None, TSim=None, Tstep=None, x=None, y=None
     #-----------------Define Default Settings------------------------------------------
     
     if Leaksize is None:
-        AllLeaks = pickle.load(open('LeakData.p', 'rb'))
+        AllLeaks = pickle.load(open('Data_Input/LeakData.p', 'rb'))
         Leaks = random.sample(AllLeaks.leak_size, 1)
         Leaksize = Leaks[0]
 
@@ -57,7 +57,7 @@ def Sensor(Leaksize=None, LeakHeight=None, TSim=None, Tstep=None, x=None, y=None
     sim_time = At.Time(TSim, Tstep, Windstep)
     leak = At.Leak(Leaksize, LeakHeight)
 
-    W = pickle.load(open('WindData.p','rb'))
+    W = pickle.load(open('Data_Input/WindData.p','rb'))
     start = random.randint(0, len(W.wind) - Windsize)
     list1 = W.wind[start: start+Windsize]   #sequential selection
     list2 = W.direction[start: start+Windsize]
