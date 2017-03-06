@@ -1,34 +1,48 @@
 """
-defines all simulation functions that are called by other files
+Defines all simulation functions that are used in the main simulation, Puff_Sim
 """
 import numpy as np
+import os
 from scipy import integrate
+import pickle
 
-def set_kwargs_attrs(obj_in, kwargs, only_existing=True):
+
+def save_results(dir_out, results):
     """
-    Function for overwriting parameters with key word arguments
+    Save results to a file
     Inputs:
-        obj_in          Object with parameters to be updated
-        kwargs          Dict containing new parameter values
-        only_existing   Determines with new parameters can be created with kwargs
+        dir_out             Name of output file to save
+        results             A results object
     """
-    for key in kwargs.keys():
-        # If only_existing is true, only set attributes that already exist
-        if only_existing:
-            if not hasattr(obj_in, key):
-                raise ValueError("Tried to set invalid attribute. Class: ", type(obj_in), 'attempted attribute:', key)
-        setattr(obj_in, key, kwargs[key])
-        
+    if not os.path.exists(dir_out):
+        os.makedirs(dir_out)
+    n_scenario = len(os.listdir(dir_out))
+    file_out = dir_out + '/scenario' + str(n_scenario) + '.p'
+    pickle.dump(results, open(file_out, 'wb'))
+    
+    
+
 def Puff_model(x, y, z, current_time, leak, atm, time, wind, angle):
+    """
+    Puff model that calculates spatial concentration of a given leak at each timestep
+    Inputs: 
+        x,y,z:          1-D of spatial coordinates where concentration is calculated
+        current_time:   current time-step in the simulation
+        leak:           leak size
+        atm:            Object containing atmospheric parameters like stability class
+        time:           Object containing various time parameters (Windstep, totaltime, etc.)
+        wind:           wind speed at time, current_time
+        angle:          wind direction at time, current_time
+    Outputs: 
+        cppm:           preliminary spatial concentration map at time, current_time
+    """
     
     X, Y, Z = np.meshgrid(x,y,z)
     H = leak.height
     Q = leak.size
-    Qt = leak.delta_leak
     Ffactor = leak.factors
     u = wind
     theta = angle
-    Tstep = time.timestep
     
     X2 = X*np.cos(theta) + Y*np.sin(theta)
     Y2 = -X*np.sin(theta) + Y*np.cos(theta)
@@ -38,7 +52,7 @@ def Puff_model(x, y, z, current_time, leak, atm, time, wind, angle):
     f2 = np.zeros([len(x), len(y), len(z)])
     f3 = np.zeros([len(x), len(y), len(z)])
     time_int = np.zeros([len(x), len(y), len(z)])
-    x
+    
     if np.mod(current_time,time.Windstep)!=0:
         times = np.mod(current_time,time.Windstep)
     else:
@@ -47,10 +61,11 @@ def Puff_model(x, y, z, current_time, leak, atm, time, wind, angle):
     sigmay = atm.k*X2/(1+X2/atm.a)**atm.p
     sigmaz = atm.l*X2/(1+X2/atm.a)**atm.q
     Zm = H + 1.6*Ffactor**(1/3)*X2**(2/3)/u
-    alpha = Qt/(2*np.pi*sigmay*sigmaz)**1.5
+    alpha = Q/(2*np.pi*sigmay*sigmaz)**1.5
     alpha[alpha==np.inf]=0
 
     f1a = np.exp(-Y2**2/(2*sigmay**2))
+    f1a[np.isnan(f1a)]=0
     f2 = np.exp(-(Z-Zm)**2/(2*sigmaz**2))
     f3 = np.exp(-(Z+Zm)**2/(2*sigmaz**2))
     
